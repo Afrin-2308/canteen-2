@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Breakfast Menu</title>
+  <style>
+    body {
+      background: url('https://images5.alphacoders.com/129/1290195.jpg') center/cover no-repeat;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+    }
+    .menu-section {
+      max-width: 900px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      color: black;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 20px; }
+    .menu-item { background: #fff; border-radius: 10px; padding: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .menu-item img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; }
+    .item-name { font-weight: bold; margin: 10px 0 5px; }
+    .item-price { color: #4caf50; font-size: 16px; margin-bottom: 10px; }
+    .quantity-control { display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .quantity-control button { background: #4caf50; border: none; color: white; font-size: 18px; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+    .quantity { min-width: 20px; text-align: center; }
+    #total { font-weight: bold; font-size: 18px; margin-top: 20px; text-align: right; }
+    .payment-section button { margin: 10px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 6px; border: none; background: #4caf50; color: white; }
+    .qr,.placed { display: none; text-align: center; margin-top: 20px; color: black; }
+    .tick { font-size: 40px; color: green; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="menu-section">
+  <h2 style="text-align:center">Breakfast Menu</h2>
+  <div class="menu-grid" id="menuGrid"></div>
+
+  <div id="total">Total: ₹0</div>
+  <button type="button" onclick="showPayment()">Pay Now</button>
+
+  <div class="payment-section" id="paymentOptions" style="display:none">
+    <button onclick="showQR()">GPay</button>
+    <button onclick="placeOrder('Cash')">Cash</button>
+  </div>
+
+  <div class="qr" id="qrCode">
+    <p>Scan to pay via GPay</p>
+    <img src="your-gpay-qr.png" alt="QR Code" style="max-width:200px;">
+    <br><br>
+    <button onclick="placeOrder('GPay')">I Have Paid</button>
+  </div>
+
+  <div class="placed" id="orderPlaced">
+    <p><strong>Order Placed</strong></p>
+    <p>Thanks for placing order</p>
+    <div class="tick">✔️</div>
+  </div>
+</div>
+
+<script>
+const items = [
+  { name: "Idli (2 pcs)", price: 30, img: "https://www.indianhealthyrecipes.com/wp-content/uploads/2021/07/idli-recipe.jpg" },
+  { name: "Dosa", price: 40, img: "https://www.indianhealthyrecipes.com/wp-content/uploads/2021/07/dosa-recipe.jpg" }
+];
+
+let total = 0;
+let orderItems = [];
+
+function loadMenu() {
+  const grid = document.getElementById('menuGrid');
+  items.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'menu-item';
+    div.innerHTML = `
+      <img src="${item.img}" alt="${item.name}">
+      <div class="item-name">${item.name}</div>
+      <div class="item-price">₹${item.price}</div>
+      <div class="quantity-control">
+        <button onclick="changeQty(${index}, -1)">−</button>
+        <span class="quantity" id="qty-${index}">0</span>
+        <button onclick="changeQty(${index}, 1)">+</button>
+      </div>`;
+    grid.appendChild(div);
+  });
+}
+
+function changeQty(index, delta) {
+  const qtyEl = document.getElementById(`qty-${index}`);
+  let qty = parseInt(qtyEl.textContent);
+  qty = Math.max(0, qty + delta);
+  qtyEl.textContent = qty;
+  updateTotal();
+}
+
+function updateTotal() {
+  total = 0;
+  orderItems = [];
+  items.forEach((item, index) => {
+    const qty = parseInt(document.getElementById(`qty-${index}`).textContent);
+    if (qty > 0) {
+      total += qty * item.price;
+      orderItems.push({ item: item.name, qty: qty, price: item.price });
+    }
+  });
+  document.getElementById('total').textContent = `Total: ₹${total}`;
+}
+
+function showPayment() {
+  if (total === 0) { alert("Please select at least one item."); return; }
+  document.getElementById("paymentOptions").style.display = "block";
+}
+
+function showQR() {
+  document.getElementById("qrCode").style.display = "block";
+  document.getElementById("orderPlaced").style.display = "none";
+}
+
+function placeOrder(paymentMethod) {
+  document.getElementById("qrCode").style.display = "none";
+  document.getElementById("orderPlaced").style.display = "block";
+
+  const order = {
+    name: localStorage.getItem("studentName"),
+    class: localStorage.getItem("studentClass"),
+    items: orderItems,
+    total: total,
+    payment: paymentMethod,
+    date: new Date().toLocaleDateString(),
+    time: new Date().toLocaleTimeString()
+  };
+
+  fetch("https://your-backend-url/place-order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(order)
+  })
+  .then(res => res.json())
+  .then(data => console.log("Order saved:", data))
+  .catch(err => console.error("Error:", err));
+}
+
+loadMenu();
+</script>
+</body>
+</html>
