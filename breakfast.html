@@ -139,7 +139,7 @@ function placeOrder(paymentMethod) {
     time: new Date().toLocaleTimeString()
   };
 
-  fetch("https://your-backend-url/place-order", {
+  fetch("https://canteen-backend-x8tz.onrender.com", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(order)
